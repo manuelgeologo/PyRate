@@ -38,7 +38,8 @@ from pyrate.core.shared import InputTypes
 from pyrate.core.prepifg_helper import CUSTOM_CROP, MAXIMUM_CROP, MINIMUM_CROP, \
     ALREADY_SAME_SIZE
 from pyrate.core import roipac
-from pyrate.core.prepifg_helper import prepare_ifgs, _resample, PreprocessError, CustomExts
+from pyrate.core.prepifg_helper import prepare_ifg, _resample, PreprocessError, CustomExts
+from pyrate.core.prepifg_helper import get_analysis_extent
 from pyrate.core import ifgconstants as ifc
 from pyrate.configuration import Configuration, MultiplePaths
 from pyrate import conv2tif, prepifg
@@ -287,9 +288,13 @@ class TestPrepifgOutput(UnitTestAdaptation):
 
     def test_multilooked_projection_same_as_geotiff(self):
         xlooks = ylooks = 1
-        prepare_ifgs(self.ifg_paths, MAXIMUM_CROP, xlooks, ylooks, headers=self.headers)
-        mlooked_paths = [mlooked_path(f, crop_opt=MAXIMUM_CROP, xlooks=xlooks, ylooks=ylooks)
+        exts = get_analysis_extent(crop_opt=MAXIMUM_CROP, rasters=self.ifgs, xlooks=xlooks, ylooks=ylooks,
+                                   user_exts=None)
+        mlooked_paths = [mlooked_path(f, crop_opt=MAXIMUM_CROP, xlooks=xlooks, ylooks=ylooks, input_type=InputTypes.IFG)
                          for f in self.ifg_paths]
+        for i, h, m in zip(self.ifg_paths, self.headers, mlooked_paths):
+            prepare_ifg(i, xlooks, ylooks, exts, thresh=0.5, crop_opt=MAXIMUM_CROP, header=h, write_to_disk=True,
+                        out_path=m)
         self.assert_projection_equal(self.ifg_paths + mlooked_paths)
 
     def test_default_max_extents(self):
